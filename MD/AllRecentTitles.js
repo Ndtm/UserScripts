@@ -50,7 +50,7 @@
 		const origFetch = unsafeWindow.fetch.bind(unsafeWindow);
 		unsafeWindow.fetch = async function(...args){
 			if(GM_getValue('showAll',true)&&document.location.pathname.startsWith('/titles/recent')&&/https:\/\/api.mangadex/.test(args[0])){
-				args[0] = args[0].replaceAll(/&(?:(?:hasAvailableChapters=[\w\d]+)|(?:availableTranslatedLanguage[^&]+))/g,'');
+				args[0] = args[0].replaceAll(/&?(?:(?:hasAvailableChapters=[\w\d]+)|(?:availableTranslatedLanguage[^&]+))(?:(?<!&[^&]+)&)?/g,'');
 			}
 			return await origFetch(...args);
 		}
