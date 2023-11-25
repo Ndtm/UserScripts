@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         All Recent Titles
 // @namespace    Ndtm_ART
-// @version      0.1
+// @version      0.3
 // @description  Gib all Titles plz
 // @author       Ndtm
 // @match        https://mangadex.org/*
@@ -28,10 +28,10 @@
 				if(multi&&!testQuery.length) testQuery = null;
 				if(testQuery!==null) return resolve(testQuery);
 				let timer;
-				let observer = new MutationObserver((mutations)=>{
+				const observer = new MutationObserver((mutations)=>{
 					for(const mutation of mutations){
 						if(mutation.type === "childList" && mutation.addedNodes){
-							let query = queryFunc(sel);
+							const query = queryFunc(sel);
 							if(multi&&!query.length) query = null;
 							if(query!==null){
 								clearTimeout(timer);
@@ -51,6 +51,22 @@
 		unsafeWindow.fetch = async function(...args){
 			if(GM_getValue('showAll',true)&&document.location.pathname.startsWith('/titles/recent')&&/https:\/\/api.mangadex/.test(args[0])){
 				args[0] = args[0].replaceAll(/&?(?:(?:hasAvailableChapters=[\w\d]+)|(?:availableTranslatedLanguage[^&]+))(?:(?<!&[^&]+)&)?/g,'');
+				if(true&&/^https:\/\/api.mangadex.(?:org|dev)\/manga\?/.test(args[0])){ //Show What Entries Have Chapters
+					const response = await origFetch(...args);
+					response.clone().json().then(res => {
+						if(res.result === 'ok'){
+							const resTotal = res.data.length;
+							document.body.waitOn(`.md-content > .page-container div.grid > div:first-child:nth-last-child(${resTotal}),div:first-child:nth-last-child(${resTotal}) ~ div.manga-card`,true).then(nodes => {
+								nodes.forEach((node,index) => {
+									if(res.data[index].attributes.latestUploadedChapter !== null){
+										node.classList.add('md-hasChapterTitle');
+									}
+								});
+							});
+						};
+					}).catch(err => {});
+					return response;
+				}
 			}
 			return await origFetch(...args);
 		}
@@ -80,6 +96,21 @@
 				GM_setValue('showAll',!GM_getValue('showAll',true));
 				location.reload();
 			})
+			//Style For Has Chapters Indicator
+			let cstyle = document.createElement('style');
+			document.head.appendChild(cstyle);
+			cstyle.innerHTML = `
+			.md-hasChapterTitle::after {
+			  content: '';
+			  width: 0;
+			  height: 0;
+			  border-style: solid;
+			  border-width: 0 12px 12px 0;
+			  border-color: transparent rgb(var(--md-midTone)) transparent transparent;
+			  right: 0;
+			  top: 0;
+			  position: absolute;
+			}`;
 		}
 	//}
 })();
