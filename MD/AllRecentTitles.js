@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         All Recent Titles
 // @namespace    Ndtm_ART
-// @version      0.3
+// @version      0.4
 // @description  Gib all Titles plz
 // @author       Ndtm
 // @match        https://mangadex.org/*
@@ -47,6 +47,7 @@
 		}
 	}
 	//if(GM_info.isIncognito){
+	let hasChapters = [];
 		const origFetch = unsafeWindow.fetch.bind(unsafeWindow);
 		unsafeWindow.fetch = async function(...args){
 			if(GM_getValue('showAll',true)&&document.location.pathname.startsWith('/titles/recent')&&/https:\/\/api.mangadex/.test(args[0])){
@@ -57,8 +58,10 @@
 						if(res.result === 'ok'){
 							const resTotal = res.data.length;
 							document.body.waitOn(`.md-content > .page-container div.grid > div:first-child:nth-last-child(${resTotal}),div:first-child:nth-last-child(${resTotal}) ~ div.manga-card`,true).then(nodes => {
+								hasChapters.length = 0;
 								nodes.forEach((node,index) => {
-									if(res.data[index].attributes.latestUploadedChapter !== null){
+									hasChapters.push(res.data[index].attributes.latestUploadedChapter !== null)
+									if(hasChapters[index]){
 										node.classList.add('md-hasChapterTitle');
 									}
 								});
@@ -80,9 +83,19 @@
 					node = node.parentElement;
 					if(!container) makeContainer(node);
 					node.prepend(container);
+					Array.from(node.querySelectorAll('.controls > .item')).forEach(elem=>{elem.addEventListener('click',function(e){reAddIndicator(elem)})})
 				})
 			}
 		});
+		function reAddIndicator(elem){
+			if(hasChapters.length && document.body.querySelector('.md-hasChapterTitle') === null){
+				Array.from(elem.closest('div:not([class])').querySelector('.grid').children).forEach((node,index) => {
+					if(hasChapters[index]){
+						node.classList.add('md-hasChapterTitle');
+					}
+				});
+			}
+		}
 		function makeContainer(node){
 			container = document.createElement('span');
 			container.style.alignItems = 'center';
@@ -106,7 +119,7 @@
 			  height: 0;
 			  border-style: solid;
 			  border-width: 0 12px 12px 0;
-			  border-color: transparent rgb(var(--md-midTone)) transparent transparent;
+			  border-color: transparent rgb(var(--md-status-green)) transparent transparent;
 			  right: 0;
 			  top: 0;
 			  position: absolute;
